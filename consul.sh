@@ -18,13 +18,13 @@ else
 fi
 CONSUL_LEADER_SESSION_ID=
 
-CONSUL_LEADER_PRIMARY_LABEL="primary"
+CONSUL_LEADER_PRIMARY_LABEL="${CONSUL_LEADER_PRIMARY_LABEL:=primary}"
 # the time the session will be considerd alive, script will sleep for SLEEP seconds
-CONSUL_LEADER_TTL=15s
+CONSUL_LEADER_TTL=${CONSUL_LEADER_TTL:=15s}
 # set sleep to some interval less than TTL
-CONSUL_LEADER_SLEEP=10
+CONSUL_LEADER_SLEEP=${CONSUL_LEADER_SLEEP:=10}
 # lock delay will take effect after a key is lost, and lock out new sessions for X time
-CONSUL_LEADER_LOCKDELAY=0s
+CONSUL_LEADER_LOCKDELAY=${CONSUL_LEADER_LOCKDELAY:=0s}
 
 function check_key () {
   echo -n "checking key..."
