@@ -20,7 +20,7 @@ jobs:
         id: prepare
         run: |
           DOCKER_IMAGE=trilom/consul-leader
-          DOCKER_PLATFORMS=linux/amd64,linux/arm/v7,linux/arm64
+          DOCKER_PLATFORMS=linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64
           VERSION=edge
 
           if [[ $GITHUB_REF == refs/tags/* ]]; then
@@ -43,8 +43,8 @@ jobs:
             --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
             --build-arg VCS_REF=${GITHUB_SHA::8} \
             ${TAGS} --file ./.docker/Dockerfile ./
-      # - name: Set up QEMU
-      #   uses: docker/setup-qemu-action@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Docker Buildx (build)
@@ -61,11 +61,11 @@ jobs:
         if: success() && github.event_name != 'pull_request'
         run: |
           docker buildx build --output "type=image,push=true" ${{ steps.prepare.outputs.buildx_args }}
-      - name: Docker Check Manifest
-        if: always() && github.event_name != 'pull_request'
-        run: |
-          docker run --rm mplatform/mquery ${{ steps.prepare.outputs.docker_image }}:${{ steps.prepare.outputs.version }}
-      - name: Clear
-        if: always() && github.event_name != 'pull_request'
-        run: |
-          rm -f ${HOME}/.docker/config.json
+      # - name: Docker Check Manifest
+      #   if: always() && github.event_name != 'pull_request'
+      #   run: |
+      #     docker run --rm mplatform/mquery ${{ steps.prepare.outputs.docker_image }}:${{ steps.prepare.outputs.version }}
+      # - name: Clear
+      #   if: always() && github.event_name != 'pull_request'
+      #   run: |
+      #     rm -f ${HOME}/.docker/config.json
