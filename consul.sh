@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-set -x
+#set -x
 env
 # your CONSUL url                           default is "http://localhost:8500"
 CONSUL_HTTP_ADDR="${CONSUL_HTTP_ADDR:=http://localhost:8500}"
@@ -37,7 +37,7 @@ function create_key () {
     "404")
       echo "NO"
       echo -n "creating key..."
-      CREATE_KEY_RESPONSE_CODE=$(curl -o /dev/null -w "%{http_code}" -X PUT $CONSUL_HTTP_ADDR/v1/kv$CONSUL_LEADER_KEY)
+      CREATE_KEY_RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT $CONSUL_HTTP_ADDR/v1/kv$CONSUL_LEADER_KEY)
       [ "$CREATE_KEY_RESPONSE_CODE" = "200" ] && echo "CREATED" || exit 1
       ;;
     "200")

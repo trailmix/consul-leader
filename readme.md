@@ -30,6 +30,6 @@ Basically you run this as a sidecar container to manage who is a leader in a gro
 | CONSUL_LEADER_SERVICE_NAME  | consul-leader                                                             | Changes the key root (if not explcit) and session label.                                    |
 | CONSUL_LEADER_KEY           | /consul-leader/lock **OR** /consul-leader/CONSUL_LEADER_SERVICE_NAME/lock | Explicitly set the KV key to lock on.                                                       |
 | CONSUL_LEADER_PRIMARY_LABEL | primary                                                                   | Label the leader this tag.                                                                  |
-| CONSUL_LEADER_TTL           | 15s                                                                       | TTL of session. Must more more than sleep or will break.                                    |
+| CONSUL_LEADER_TTL           | 15s                                                                       | TTL of session. Must more more than sleep or will break. `10s-24h0m0s`                      |
 | CONSUL_LEADER_SLEEP         | 10                                                                        | Sleep period for renewing TTL.                                                              |
 | CONSUL_LEADER_LOCKDELAY     | 0s                                                                        | [Lock delay of key.](https://www.consul.io/docs/dynamic-app-config/sessions#session-design) |
