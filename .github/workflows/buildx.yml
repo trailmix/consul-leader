@@ -4,9 +4,11 @@ on:
   schedule:
     - cron: "0 10 * * *" # everyday at 10am
   pull_request:
-    branches: master
+    branches:
+      - master
   push:
-    branches: master
+    branches:
+      - master
     tags:
       - "[1-2].*.*"
 
