@@ -1,7 +1,23 @@
 #!/bin/bash
 set -e
-#set -x
-env
+if [ "${CONSUL_LEADER_LOG_LEVEL:=error}" = "debug" ]; then
+  set -x
+fi 
+
+ccwhite=$(echo -e "\033[0;37m")
+ccred=$(echo -e "\033[0;31m")
+ccgreen=$(echo -e "\033[0;32m")
+ccyellow=$(echo -e "\033[0;33m")
+ccend=$(echo -e "\033[0m")
+declare -A LOG_LEVELS=([debug]=0 [info]=1 [warn]=2 [error]=3)
+declare -A LOG_COLORS=([debug]=${ccwhite} [info]=${ccgreen} [warn]=${ccyellow} [error]=${ccred})
+
+function log() {
+  [[ ${LOG_LEVELS[$2]} ]] || return 1
+  (( ${LOG_LEVELS[$2]} < ${LOG_LEVELS[$CONSUL_LEADER_LOG_LEVEL]} )) && return 2
+  echo ${3-} "$(date -u +'%D %H:%M:%S') ${LOG_COLORS[$2]}$2$ccend : $1"
+}
+
 # your CONSUL url                           default is "http://localhost:8500"
 CONSUL_HTTP_ADDR="${CONSUL_HTTP_ADDR:=http://localhost:8500}"
 # TODO: consul auth
@@ -27,10 +43,8 @@ CONSUL_LEADER_SLEEP=${CONSUL_LEADER_SLEEP:=10}
 CONSUL_LEADER_LOCKDELAY=${CONSUL_LEADER_LOCKDELAY:=0s}
 
 function check_key () {
-  echo -n "checking key..."
+  log "checking key..." "debug" "-n"
   CHECK_KEY_RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" $CONSUL_HTTP_ADDR/v1/kv$CONSUL_LEADER_KEY)
-}
-
 function create_key () {
   check_key
   case $CHECK_KEY_RESPONSE_CODE in
