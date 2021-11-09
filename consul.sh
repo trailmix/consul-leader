@@ -35,6 +35,8 @@ fi
 CONSUL_LEADER_SESSION_ID=
 
 CONSUL_LEADER_PRIMARY_LABEL="${CONSUL_LEADER_PRIMARY_LABEL:=primary}"
+# replica label is empty, meaning no label.  if you set this then the replicas will have this label
+CONSUL_LEADER_REPLICA_LABEL="${CONSUL_LEADER_REPLICA_LABEL:=}"
 # the time the session will be considerd alive, script will sleep for SLEEP seconds
 CONSUL_LEADER_TTL=${CONSUL_LEADER_TTL:=15s}
 # set sleep to some interval less than TTL
