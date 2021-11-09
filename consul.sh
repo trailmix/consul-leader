@@ -78,27 +78,39 @@ function get_service () {
   fi
   echo "OK"
 }
+# optionally pass in a label, defaults to CONSUL_LEADER_PRIMARY_LABEL
 function remove_tag () {
   get_service
   echo -n 'removing tag...'
-  UPDATE_SERVICE_BODY=$(echo $GET_SERVICE_RESPONSE | jq -c 'del(.Tags[] | select(. == "'$CONSUL_LEADER_PRIMARY_LABEL'"))')
+  UPDATE_SERVICE_BODY=$(echo $GET_SERVICE_RESPONSE | jq -c 'del(.Tags[] | select(. == "'${1-$CONSUL_LEADER_PRIMARY_LABEL}'"))')
   if [ "$UPDATE_SERVICE_BODY" != "$GET_SERVICE_RESPONSE" ]; then
     UPDATE_SERVICE_BODY=$(echo $UPDATE_SERVICE_BODY | jq -c '.["Name"] = .Service | del(.Service, .Datacenter)')
     REMOVE_TAG_RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT -d $UPDATE_SERVICE_BODY $CONSUL_HTTP_ADDR/v1/agent/service/register)
-    [ "$REMOVE_TAG_RESPONSE_CODE" = "200" ] && echo "OK" || echo "FAILURE"
+    if [ "$REMOVE_TAG_RESPONSE_CODE" = "200" ]; then
+      echo "OK"
+    else
+      echo "FAILURE"
+    fi
   else
     echo "NO CHANGE"
   fi
 }
+# optionally pass in a label, defaults to CONSUL_LEADER_PRIMARY_LABEL
 function add_tag () {
-  #jq '. | select( .Services[] | .ID == "'$CONSUL_LEADER_INSTANCE_ID'").Services[0].Tags = (select( .Services[] | .ID == "'$CONSUL_LEADER_INSTANCE_ID'").Services[0].Tags + ["'$CONSUL_LEADER_PRIMARY_LABEL'"] | unique) | .Services[0]'
   get_service
   echo -n 'adding tag...'
-  UPDATE_SERVICE_BODY=$(echo $GET_SERVICE_RESPONSE | jq -c '.Tags =  (.Tags + ["'$CONSUL_LEADER_PRIMARY_LABEL'"]|unique)')
+  UPDATE_SERVICE_BODY=$(echo $GET_SERVICE_RESPONSE | jq -c '.Tags =  (.Tags + ["'${1-$CONSUL_LEADER_PRIMARY_LABEL}'"]|unique)')
   if [ "$UPDATE_SERVICE_BODY" != "$GET_SERVICE_RESPONSE" ]; then
     UPDATE_SERVICE_BODY=$(echo $UPDATE_SERVICE_BODY | jq -c '.["Name"] = .Service | del(.Service, .Datacenter)')
     ADD_TAG_RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT -d $UPDATE_SERVICE_BODY $CONSUL_HTTP_ADDR/v1/agent/service/register)
-    [ "$ADD_TAG_RESPONSE_CODE" = "200" ] && echo "OK" || echo "FAILURE"
+    if [ "$ADD_TAG_RESPONSE_CODE" = "200" ]; then
+      if [ "${1-$CONSUL_LEADER_PRIMARY_LABEL}" = "$CONSUL_LEADER_PRIMARY_LABEL" ]; then
+        touch $NOMAD_ALLOC_DIR/$NOMAD_ALLOC_ID
+      fi
+      echo "OK"
+    else
+      echo "FAILURE"
+    fi
   else
     echo "NO CHANGE"
   fi
@@ -138,8 +150,6 @@ function acquire_key () {
   if [ -n "$CONSUL_LEADER_SESSION_ID" ]; then
     ACQUIRE_KEY_RESPONSE=$(curl -s -X PUT $CONSUL_HTTP_ADDR/v1/kv$CONSUL_LEADER_KEY?acquire=$CONSUL_LEADER_SESSION_ID)
     echo $ACQUIRE_KEY_RESPONSE
-    # if I acquired the key, I should tag myself as primary
-    [ "$ACQUIRE_KEY_RESPONSE" = "true" ] && add_tag || remove_tag
   else
     echo "NO SESSION"
   fi
@@ -165,9 +175,18 @@ function renew_session () {
 while [ true ]; do
   # check if there is a session, if not race to check key, create if necessary, and acquire it
   renew_session # renew session first
-  LOCK_OWNER=$(curl -s $CONSUL_HTTP_ADDR/v1/kv$CONSUL_LEADER_KEY | jq -c -r '.[0].Session//empty')
-  [ "$LOCK_OWNER" == "$CONSUL_LEADER_SESSION_ID" ] && add_tag || remove_tag
   [ "$LOCK_OWNER" = "" ] && create_key && acquire_key 
   LOCK_OWNER=$(curl -s $CONSUL_HTTP_ADDR/v1/kv$CONSUL_LEADER_KEY?consistent | jq -c -r '.[0].Session//empty')
+  if [ "$LOCK_OWNER" == "$CONSUL_LEADER_SESSION_ID" ]; then
+    add_tag $CONSUL_LEADER_PRIMARY_LABEL
+    if [ -n $CONSUL_LEADER_REPLICA_LABEL ]; then
+      remove_tag $CONSUL_LEADER_REPLICA_LABEL
+    fi
+  else
+    remove_tag
+    if [ -n $CONSUL_LEADER_REPLICA_LABEL ]; then
+      add_tag $CONSUL_LEADER_REPLICA_LABEL
+    fi
+  fi
   sleep $CONSUL_LEADER_SLEEP
 done
