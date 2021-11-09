@@ -168,5 +168,6 @@ while [ true ]; do
   LOCK_OWNER=$(curl -s $CONSUL_HTTP_ADDR/v1/kv$CONSUL_LEADER_KEY | jq -c -r '.[0].Session//empty')
   [ "$LOCK_OWNER" == "$CONSUL_LEADER_SESSION_ID" ] && add_tag || remove_tag
   [ "$LOCK_OWNER" = "" ] && create_key && acquire_key 
+  LOCK_OWNER=$(curl -s $CONSUL_HTTP_ADDR/v1/kv$CONSUL_LEADER_KEY?consistent | jq -c -r '.[0].Session//empty')
   sleep $CONSUL_LEADER_SLEEP
 done
